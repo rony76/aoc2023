@@ -29,4 +29,19 @@ class CubeTest {
         assertThat(sumOfValidGames).isEqualTo(1);
         verify(gameParser).parse(gameString);
     }
+
+    @Test
+    void canSumPowers() {
+        final String gameString = "Game 1: 13 green, 3 red, 2 blue";
+        GameParser gameParser = Mockito.mock(GameParser.class);
+        final Game game = Mockito.mock(Game.class);
+        when(game.getGamePower()).thenReturn(78);
+        when(gameParser.parse(gameString)).thenReturn(game);
+        final Stream<String> lines = Stream.of(gameString);
+
+        Cube cube = new Cube(gameParser);
+
+        long powerSum = cube.sumPowers(lines);
+        assertThat(powerSum).isEqualTo(78L);
+    }
 }

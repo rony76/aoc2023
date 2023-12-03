@@ -27,6 +27,13 @@ public class Game {
         return draws.stream().allMatch(d -> d.isValidFor(limits));
     }
 
+    public int getGamePower() {
+        return draws.stream()
+                .reduce(CubeSet::getMinimumRequirementsWith)
+                .orElseThrow(() -> new IllegalStateException("No draws found"))
+                .getPower();
+    }
+
     @AllArgsConstructor
     @Getter
     @Builder
@@ -47,6 +54,18 @@ public class Game {
             return limits.red >= red
                     && limits.green >= green
                     && limits.blue >= blue;
+        }
+
+        public CubeSet getMinimumRequirementsWith(CubeSet other) {
+            return CubeSet.builder()
+                    .red(Math.max(red, other.red))
+                    .green(Math.max(green, other.green))
+                    .blue(Math.max(blue, other.blue))
+                    .build();
+        }
+
+        public int getPower() {
+            return red * green * blue;
         }
     }
 }

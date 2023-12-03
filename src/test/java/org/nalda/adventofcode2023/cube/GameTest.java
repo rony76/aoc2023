@@ -52,4 +52,15 @@ class GameTest {
 
         draws.forEach(s -> verify(s).isValidFor(limits));
     }
+
+    @Test
+    void canCalculatePower() {
+        final Game game = new Game(1, List.of(
+                CubeSet.rgb(10, 4, 4),
+                CubeSet.rgb(8, 10, 8),
+                CubeSet.rgb(6, 6, 10)
+        ));
+
+        assertThat(game.getGamePower()).isEqualTo(1000);
+    }
 }

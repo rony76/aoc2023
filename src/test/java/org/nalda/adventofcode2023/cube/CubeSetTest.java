@@ -29,4 +29,21 @@ public class CubeSetTest {
 
         assertThat(draw.isValidFor(limits)).isFalse();
     }
+
+    @Test
+    void canGenerateMinimumRequirementsWithAnotherSet() {
+        final CubeSet draw = CubeSet.rgb(10, 10, 10);
+        final CubeSet other = CubeSet.rgb(5, 20, 20);
+
+        final CubeSet minimumRequirements = draw.getMinimumRequirementsWith(other);
+
+        assertThat(minimumRequirements).isEqualTo(CubeSet.rgb(10, 20, 20));
+    }
+
+    @Test
+    void canCalculatePower() {
+        final CubeSet draw = CubeSet.rgb(4, 2, 6);
+
+        assertThat(draw.getPower()).isEqualTo(48);
+    }
 }
