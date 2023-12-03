@@ -21,7 +21,7 @@ public class Trebuchet {
     }
 
     private static Path getInputPath() throws URISyntaxException {
-        final URL resource = Trebuchet.class.getClassLoader().getResource("input.txt");
+        final URL resource = Trebuchet.class.getClassLoader().getResource("trebuchet-input.txt");
         return new File(resource.toURI()).toPath();
     }
 
