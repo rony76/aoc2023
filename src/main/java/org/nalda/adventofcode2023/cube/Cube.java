@@ -1,12 +1,10 @@
 package org.nalda.adventofcode2023.cube;
 
 import lombok.AllArgsConstructor;
-import org.nalda.adventofcode2023.trebuchet.Trebuchet;
+import org.nalda.adventofcode2023.ResourceUtil;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
@@ -16,7 +14,7 @@ public class Cube {
     private final GameParser gameParser;
 
     public static void main(String[] args) throws IOException, URISyntaxException {
-        final Path path = getInputPath();
+        final Path path = ResourceUtil.getInputPath("cube-input.txt");
         final Game.CubeSet limits = Game.CubeSet.rgb(12, 13, 14);
         final Cube cube = new Cube(new GameParser());
 
@@ -33,11 +31,6 @@ public class Cube {
                 .filter(game -> game.isValidFor(limits))
                 .mapToInt(Game::getGameNumber)
                 .sum();
-    }
-
-    private static Path getInputPath() throws URISyntaxException {
-        final URL resource = Trebuchet.class.getClassLoader().getResource("cube-input.txt");
-        return new File(resource.toURI()).toPath();
     }
 
 
