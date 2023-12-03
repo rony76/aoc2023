@@ -13,6 +13,8 @@ import java.util.function.Supplier;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
+import static java.util.stream.Stream.concat;
+
 public class Engine {
     public static void main(String[] args) throws URISyntaxException, IOException {
         final Path inputPath = ResourceUtil.getInputPath("engine-schema.txt");
@@ -30,14 +32,23 @@ public class Engine {
     }
 
     private long calculatePartNumberSum(Supplier<Stream<String>> linesSupplier) {
-        final int lineLength = calcLineLength(linesSupplier);
-        final String pad = ".".repeat(lineLength);
-
-        Stream<String> lines = paddedLinesStream(linesSupplier, pad);
+        Stream<String> lines = paddedLinesStream(linesSupplier);
 
         return StreamUtils.windowed(lines, 3)
                 .flatMapToLong(this::extractPartNumbers)
                 .sum();
+    }
+
+    private Stream<String> paddedLinesStream(Supplier<Stream<String>> linesSupplier) {
+        final int lineLength = calcLineLength(linesSupplier);
+        final String pad = ".".repeat(lineLength);
+
+        Stream<String> lines = concat(
+                concat(
+                        Stream.of(pad),
+                        linesSupplier.get()
+                ), Stream.of(pad)).map(this::padLine);
+        return lines;
     }
 
     private LongStream extractPartNumbers(List<String> threeLines) {
@@ -77,13 +88,8 @@ public class Engine {
         return linesSupplier.get().findFirst().orElseThrow().length();
     }
 
-    private Stream<String> paddedLinesStream(Supplier<Stream<String>> linesSupplier, String pad) {
-        Stream<String> lines = Stream.concat(
-                Stream.concat(
-                        Stream.of(pad),
-                        linesSupplier.get()
-                ), Stream.of(pad)).map(line -> "." + line + ".");
-        return lines;
+    private String padLine(String line) {
+        return "." + line + ".";
     }
 
     private record Frame(List<String> threeLines, int left, int right) {
