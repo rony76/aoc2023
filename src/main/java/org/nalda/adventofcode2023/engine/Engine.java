@@ -8,8 +8,8 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedList;
-import java.util.List;
-import java.util.function.Supplier;
+import java.util.OptionalLong;
+import java.util.function.Function;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
@@ -19,8 +19,31 @@ public class Engine {
     public static void main(String[] args) throws URISyntaxException, IOException {
         final Path inputPath = ResourceUtil.getInputPath("engine-schema.txt");
 
-        final long partNumberSum = new Engine().calculatePartNumberSum(() -> getSafeLines(inputPath));
+        final Engine engine = new Engine();
+        final int lineLength = engine.calcLineLength(getSafeLines(inputPath));
+
+        final long partNumberSum = engine.calculatePartNumberSum(getSafeLines(inputPath), lineLength);
         System.out.println("Part number sum: " + partNumberSum);
+
+        final long gearRatioSum = engine.calculateGearRatioSum(getSafeLines(inputPath), lineLength);
+        System.out.println("Gear ratio sum: " + gearRatioSum);
+    }
+
+    private long calculatePartNumberSum(Stream<String> lineStream, int lineLength) {
+        return extractFromThreeLineWindowStream(lineStream, lineLength, this::extractPartNumbers);
+    }
+
+    private long calculateGearRatioSum(Stream<String> lineStream, int lineLength) {
+        return extractFromThreeLineWindowStream(lineStream, lineLength, Engine::extractGearRatios);
+    }
+
+    private long extractFromThreeLineWindowStream(Stream<String> lineStream, int lineLength, Function<ThreeLines, LongStream> longExtractor) {
+        Stream<String> paddedLineStream = padLinesStream(lineStream, lineLength);
+
+        return StreamUtils.windowed(paddedLineStream, 3)
+                .map(ThreeLines::new)
+                .flatMapToLong(longExtractor)
+                .sum();
     }
 
     private static Stream<String> getSafeLines(Path inputPath) {
@@ -31,30 +54,17 @@ public class Engine {
         }
     }
 
-    private long calculatePartNumberSum(Supplier<Stream<String>> linesSupplier) {
-        Stream<String> lines = paddedLinesStream(linesSupplier);
-
-        return StreamUtils.windowed(lines, 3)
-                .flatMapToLong(this::extractPartNumbers)
-                .sum();
-    }
-
-    private Stream<String> paddedLinesStream(Supplier<Stream<String>> linesSupplier) {
-        final int lineLength = calcLineLength(linesSupplier);
+    private Stream<String> padLinesStream(Stream<String> lines, int lineLength) {
         final String pad = ".".repeat(lineLength);
 
-        Stream<String> lines = concat(
-                concat(
-                        Stream.of(pad),
-                        linesSupplier.get()
-                ), Stream.of(pad)).map(this::padLine);
-        return lines;
+        return concat(concat(Stream.of(pad), lines), Stream.of(pad))
+                .map(this::padLine);
     }
 
-    private LongStream extractPartNumbers(List<String> threeLines) {
+    private LongStream extractPartNumbers(ThreeLines threeLines) {
         final LinkedList<Long> partNumbers = new LinkedList<>();
 
-        final String haystack = threeLines.get(1);
+        final String haystack = threeLines.centralLine();
 
         StringBuilder digitBuffer = new StringBuilder();
         boolean inDigit = false;
@@ -80,25 +90,39 @@ public class Engine {
         return partNumbers.stream().mapToLong(Long::longValue);
     }
 
-    private boolean findNeighbouringSymbol(List<String> window, int firstDigitIndex, int firstNonDigitIndex) {
+    private static LongStream extractGearRatios(ThreeLines threeLines) {
+        final String haystack = threeLines.centralLine();
+
+        LinkedList<Long> gearRatios = new LinkedList<>();
+
+        for (int i = 0; i < haystack.length(); i++) {
+            if (haystack.charAt(i) == '*') {
+                OptionalLong gearRationOpt = new GearFrame(threeLines, i).findGearRatio();
+                gearRationOpt.ifPresent(gearRatios::add);
+            }
+        }
+        return gearRatios.stream().mapToLong(Long::longValue);
+    }
+
+    private boolean findNeighbouringSymbol(ThreeLines window, int firstDigitIndex, int firstNonDigitIndex) {
         return new Frame(window, firstDigitIndex - 1, firstNonDigitIndex).containsSymbol();
     }
 
-    private int calcLineLength(Supplier<Stream<String>> linesSupplier) {
-        return linesSupplier.get().findFirst().orElseThrow().length();
+    private int calcLineLength(Stream<String> lines) {
+        return lines.findFirst().orElseThrow().length();
     }
 
     private String padLine(String line) {
         return "." + line + ".";
     }
 
-    private record Frame(List<String> threeLines, int left, int right) {
+    private record Frame(ThreeLines threeLines, int left, int right) {
 
         public boolean containsSymbol() {
             if (rightBorderIsSymbol()) return true;
             if (leftBorderIsSymbol()) return true;
-            if (lineContainsSymbol(topLine())) return true;
-            if (lineContainsSymbol(bottomLine())) return true;
+            if (lineContainsSymbol(threeLines.topLine())) return true;
+            if (lineContainsSymbol(threeLines.bottomLine())) return true;
             return false;
         }
 
@@ -113,27 +137,16 @@ public class Engine {
         }
 
         private boolean leftBorderIsSymbol() {
-            return isSymbol(mainLine().charAt(right));
+            return isSymbol(threeLines.centralLine().charAt(right));
         }
 
         private boolean rightBorderIsSymbol() {
-            return isSymbol(mainLine().charAt(left));
-        }
-
-        private String bottomLine() {
-            return threeLines.get(2);
-        }
-
-        private String topLine() {
-            return threeLines.get(0);
-        }
-
-        private String mainLine() {
-            return threeLines.get(1);
+            return isSymbol(threeLines.centralLine().charAt(left));
         }
 
         private boolean isSymbol(char c) {
             return c != '.' && !Character.isDigit(c);
         }
     }
+
 }
