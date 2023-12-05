@@ -9,6 +9,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -20,12 +21,12 @@ public class ResourceUtil {
     }
 
     @SneakyThrows
-    public static Stream<String> getInputLines(String name) {
+    public static Stream<String> getLineStream(String name) {
         return Files.lines(getInputPath(name));
     }
 
     @SneakyThrows
-    public static Supplier<Stream<String>> getInputLinesSupplier(String name) {
+    public static Supplier<Stream<String>> getLineStreamSupplier(String name) {
         return () -> {
             try {
                 return Files.lines(getInputPath(name));
@@ -33,5 +34,10 @@ public class ResourceUtil {
                 throw new RuntimeException(e);
             }
         };
+    }
+
+    @SneakyThrows
+    public static List<String> getLineList(String name) {
+        return Files.readAllLines(getInputPath(name));
     }
 }

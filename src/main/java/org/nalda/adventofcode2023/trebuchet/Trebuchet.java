@@ -6,7 +6,7 @@ import java.util.stream.Stream;
 
 public class Trebuchet {
     public static void main(String[] args) {
-        final Stream<String> lines = ResourceUtil.getInputLines("trebuchet-input.txt");
+        final Stream<String> lines = ResourceUtil.getLineStream("trebuchet-input.txt");
 
         final long value = lines
                 .mapToInt(new Trebuchet()::extractCalibrationParameter)

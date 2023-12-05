@@ -4,14 +4,13 @@ import org.nalda.adventofcode2023.ResourceUtil;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 public class ScratchCards {
     public static void main(String[] args) throws URISyntaxException, IOException {
         final CardParser cardParser = new CardParser();
-        final Supplier<Stream<String>> linesSupplier = ResourceUtil.getInputLinesSupplier("scratchcards-input.txt");
+        final Supplier<Stream<String>> linesSupplier = ResourceUtil.getLineStreamSupplier("scratchcards-input.txt");
 
         calculateTotalWorth(cardParser, linesSupplier);
         calculateTotalCards(cardParser, linesSupplier);

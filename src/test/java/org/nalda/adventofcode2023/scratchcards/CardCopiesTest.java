@@ -74,7 +74,7 @@ class CardCopiesTest {
     @Test
     void acceptance() {
         final BinaryOperator<CardCopies> dummyCombiner = (a, b) -> b;
-        final Stream<String> lines = ResourceUtil.getInputLines("scratchcards-acceptance.txt");
+        final Stream<String> lines = ResourceUtil.getLineStream("scratchcards-acceptance.txt");
 
         final long totalCards = lines
                 .map(cardParser::parse)

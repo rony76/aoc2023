@@ -1,15 +1,10 @@
 package org.nalda.adventofcode2023.cube;
 
 import lombok.AllArgsConstructor;
-import org.nalda.adventofcode2023.ResourceUtil;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.stream.Stream;
 
-import static org.nalda.adventofcode2023.ResourceUtil.getInputLines;
+import static org.nalda.adventofcode2023.ResourceUtil.getLineStream;
 
 @AllArgsConstructor
 public class Cube {
@@ -19,10 +14,10 @@ public class Cube {
         final Game.CubeSet limits = Game.CubeSet.rgb(12, 13, 14);
         final Cube cube = new Cube(new GameParser());
 
-        final long sumOfValidGames = cube.processGames(getInputLines("cube-input.txt"), limits);
+        final long sumOfValidGames = cube.processGames(getLineStream("cube-input.txt"), limits);
         System.out.println("Sum of valid games: " + sumOfValidGames);
 
-        final long powerSum = cube.sumPowers(getInputLines("cube-input.txt"));
+        final long powerSum = cube.sumPowers(getLineStream("cube-input.txt"));
         System.out.println("Sum of powers: " + powerSum);
     }
 

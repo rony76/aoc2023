@@ -3,10 +3,6 @@ package org.nalda.adventofcode2023.engine;
 import com.codepoetics.protonpack.StreamUtils;
 import org.nalda.adventofcode2023.ResourceUtil;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.OptionalLong;
 import java.util.function.Function;
@@ -18,7 +14,7 @@ import static java.util.stream.Stream.concat;
 
 public class Engine {
     public static void main(String[] args) {
-        final Supplier<Stream<String>> linesSupplier = ResourceUtil.getInputLinesSupplier("engine-schema.txt");
+        final Supplier<Stream<String>> linesSupplier = ResourceUtil.getLineStreamSupplier("engine-schema.txt");
 
         final Engine engine = new Engine();
         final int lineLength = engine.calcLineLength(linesSupplier.get());
