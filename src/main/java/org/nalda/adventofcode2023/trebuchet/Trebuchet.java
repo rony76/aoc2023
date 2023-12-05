@@ -2,17 +2,13 @@ package org.nalda.adventofcode2023.trebuchet;
 
 import org.nalda.adventofcode2023.ResourceUtil;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.stream.Stream;
 
 public class Trebuchet {
-    public static void main(String[] args) throws URISyntaxException, IOException {
-        final Path path = ResourceUtil.getInputPath("trebuchet-input.txt");
-        final long value = Files.lines(path)
+    public static void main(String[] args) {
+        final Stream<String> lines = ResourceUtil.getInputLines("trebuchet-input.txt");
+
+        final long value = lines
                 .mapToInt(new Trebuchet()::extractCalibrationParameter)
                 .sum();
         System.out.println(value);

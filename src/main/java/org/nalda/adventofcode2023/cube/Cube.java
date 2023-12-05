@@ -9,19 +9,20 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
 
+import static org.nalda.adventofcode2023.ResourceUtil.getInputLines;
+
 @AllArgsConstructor
 public class Cube {
     private final GameParser gameParser;
 
-    public static void main(String[] args) throws IOException, URISyntaxException {
-        final Path path = ResourceUtil.getInputPath("cube-input.txt");
+    public static void main(String[] args) {
         final Game.CubeSet limits = Game.CubeSet.rgb(12, 13, 14);
         final Cube cube = new Cube(new GameParser());
 
-        final long sumOfValidGames = cube.processGames(Files.lines(path), limits);
+        final long sumOfValidGames = cube.processGames(getInputLines("cube-input.txt"), limits);
         System.out.println("Sum of valid games: " + sumOfValidGames);
 
-        final long powerSum = cube.sumPowers(Files.lines(path));
+        final long powerSum = cube.sumPowers(getInputLines("cube-input.txt"));
         System.out.println("Sum of powers: " + powerSum);
     }
 

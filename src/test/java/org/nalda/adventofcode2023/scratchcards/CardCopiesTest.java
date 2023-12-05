@@ -3,12 +3,9 @@ package org.nalda.adventofcode2023.scratchcards;
 import org.junit.jupiter.api.Test;
 import org.nalda.adventofcode2023.ResourceUtil;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.function.BinaryOperator;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -75,11 +72,11 @@ class CardCopiesTest {
     }
 
     @Test
-    void acceptance() throws URISyntaxException, IOException {
-        final Path inputPath = ResourceUtil.getInputPath("scratchcards-acceptance.txt");
+    void acceptance() {
         final BinaryOperator<CardCopies> dummyCombiner = (a, b) -> b;
+        final Stream<String> lines = ResourceUtil.getInputLines("scratchcards-acceptance.txt");
 
-        final long totalCards = Files.lines(inputPath)
+        final long totalCards = lines
                 .map(cardParser::parse)
                 .reduce(CardCopies.empty(), CardCopies::accumulateCard, dummyCombiner)
                 .totalCards();

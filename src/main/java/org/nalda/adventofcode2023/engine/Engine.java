@@ -10,22 +10,23 @@ import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.OptionalLong;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 import static java.util.stream.Stream.concat;
 
 public class Engine {
-    public static void main(String[] args) throws URISyntaxException, IOException {
-        final Path inputPath = ResourceUtil.getInputPath("engine-schema.txt");
+    public static void main(String[] args) {
+        final Supplier<Stream<String>> linesSupplier = ResourceUtil.getInputLinesSupplier("engine-schema.txt");
 
         final Engine engine = new Engine();
-        final int lineLength = engine.calcLineLength(getSafeLines(inputPath));
+        final int lineLength = engine.calcLineLength(linesSupplier.get());
 
-        final long partNumberSum = engine.calculatePartNumberSum(getSafeLines(inputPath), lineLength);
+        final long partNumberSum = engine.calculatePartNumberSum(linesSupplier.get(), lineLength);
         System.out.println("Part number sum: " + partNumberSum);
 
-        final long gearRatioSum = engine.calculateGearRatioSum(getSafeLines(inputPath), lineLength);
+        final long gearRatioSum = engine.calculateGearRatioSum(linesSupplier.get(), lineLength);
         System.out.println("Gear ratio sum: " + gearRatioSum);
     }
 
@@ -44,14 +45,6 @@ public class Engine {
                 .map(ThreeLines::new)
                 .flatMapToLong(longExtractor)
                 .sum();
-    }
-
-    private static Stream<String> getSafeLines(Path inputPath) {
-        try {
-            return Files.lines(inputPath);
-        } catch (IOException e) {
-            return Stream.empty();
-        }
     }
 
     private Stream<String> padLinesStream(Stream<String> lines, int lineLength) {
