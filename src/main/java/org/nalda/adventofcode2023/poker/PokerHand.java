@@ -9,6 +9,8 @@ import java.util.stream.Collectors;
 
 @EqualsAndHashCode
 public class PokerHand implements Comparable<PokerHand> {
+    private static final int JOKER = 1;
+
     private PokerHand(HandType type, int[] cards) {
         this.type = type;
         this.cards = cards;
@@ -20,7 +22,7 @@ public class PokerHand implements Comparable<PokerHand> {
                     case 'A' -> 14;
                     case 'K' -> 13;
                     case 'Q' -> 12;
-                    case 'J' -> 11;
+                    case 'J' -> JOKER;
                     case 'T' -> 10;
                     default -> c - '0';
                 })
@@ -49,21 +51,38 @@ public class PokerHand implements Comparable<PokerHand> {
     }
 
     public enum HandType implements HandTypeChecker {
-        FIVE_OF_A_KIND {
+        POKER {
             @Override
             public boolean check(Map<Integer, Long> cards) {
-                return cards.size() == 1;
+                // jokerCount can be up to 5!
+                final Long jokerCount = cards.getOrDefault(JOKER, 0L);
+                return (jokerCount == 5) || cards.values().stream().anyMatch(count -> count + jokerCount == 5);
             }
         },
         FOUR_OF_A_KIND {
             @Override
             public boolean check(Map<Integer, Long> cards) {
-                return cards.values().stream().anyMatch(count -> count == 4);
+                // jokerCount can be up to 3! With 4 (or 5!) jokers, we'd have a poker
+                final Long jokerCount = cards.getOrDefault(JOKER, 0L);
+                return cards.entrySet().stream()
+                        .filter(entry -> entry.getKey() != JOKER)
+                        .anyMatch(entry -> entry.getValue() + jokerCount == 4);
             }
         },
         FULL_HOUSE {
             @Override
             public boolean check(Map<Integer, Long> cards) {
+                // jokerCount can be up to 2! (with 3 or more we'd have a 4 of a kind or a poker!)
+                final Long jokerCount = cards.getOrDefault(JOKER, 0L);
+                if (jokerCount == 2) {
+                    // if it hasn't been identified as a 4 of a kind, it means the other cards all have a count of 1
+                    return false;
+                }
+
+                if (jokerCount == 1) {
+                    return cards.values().stream().filter(count -> count == 2).count() == 2;
+                }
+
                 if (cards.size() != 2) {
                     return false;
                 }
@@ -73,22 +92,27 @@ public class PokerHand implements Comparable<PokerHand> {
         THREE_OF_A_KIND {
             @Override
             public boolean check(Map<Integer, Long> cards) {
-                if (cards.size() != 3) {
-                    return false;
-                }
-                return cards.values().stream().anyMatch(count -> count == 3);
+                // jokerCount can be up to 2! (with 3 or more we'd have a 4 of a kind or a poker!)
+                final Long jokerCount = cards.getOrDefault(JOKER, 0L);
+                return cards.entrySet().stream()
+                        .filter(entry -> entry.getKey() != JOKER)
+                        .anyMatch(entry -> entry.getValue() + jokerCount == 3);
             }
         },
         TWO_PAIR {
             @Override
             public boolean check(Map<Integer, Long> cards) {
-                return cards.values().stream().filter(count -> count == 2).count() == 2;
+                // jokers don't contribute to two pairs, as at least one pair should already be there...
+                // and it would become a three of a kind!
+                final long pairs = cards.values().stream().filter(count -> count == 2).count();
+                return pairs == 2;
             }
         },
         ONE_PAIR {
             @Override
             public boolean check(Map<Integer, Long> cards) {
-                return cards.values().stream().anyMatch(count -> count == 2);
+                var anyJoker = cards.containsKey(JOKER);
+                return anyJoker || cards.values().stream().anyMatch(count -> count == 2);
             }
         },
         HIGH_CARD {
@@ -122,6 +146,20 @@ public class PokerHand implements Comparable<PokerHand> {
 
     @Override
     public String toString() {
-        return "%s (%s)".formatted(Arrays.toString(cards), type);
+        final String str = Arrays.stream(cards).mapToObj(c -> {
+            if (c == JOKER) {
+                return "*";
+            } else {
+                return switch (c) {
+                    case 14 -> "A";
+                    case 13 -> "K";
+                    case 12 -> "Q";
+                    case 11 -> "J";
+                    case 10 -> "T";
+                    default -> Integer.toString(c);
+                };
+            }
+        }).collect(Collectors.joining(""));
+        return "%s (%s)".formatted(str, type);
     }
 }
