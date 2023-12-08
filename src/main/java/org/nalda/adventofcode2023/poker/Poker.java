@@ -19,7 +19,6 @@ public class Poker {
         return lineStream
                 .map(parser::parse)
                 .sorted()
-                .peek(System.out::println)
                 .collect(new WinningCollector());
     }
 }
