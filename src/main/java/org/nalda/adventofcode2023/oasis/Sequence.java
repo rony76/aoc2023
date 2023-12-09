@@ -17,24 +17,23 @@ public class Sequence {
     }
 
     public long calculateNext() {
-        return calculateNext(this.numbers);
+        return calculateNext(numbers.clone(), numbers.length);
     }
 
-    private long calculateNext(long[] numbers) {
-        final long[] childSeq = new long[numbers.length - 1];
+    private long calculateNext(long[] numbers, int length) {
         var allZeros = true;
 
-        for (int i = 1; i < numbers.length; i++) {
+        for (int i = 1; i < length; i++) {
             var diff = numbers[i] - numbers[i - 1];
             allZeros = allZeros && diff == 0;
 
-            childSeq[i - 1] = diff;
+            numbers[i - 1] = diff;
         }
 
         if (allZeros) {
-            return numbers[numbers.length - 1];
+            return numbers[length - 1];
         } else {
-            return numbers[numbers.length - 1] + calculateNext(childSeq);
+            return numbers[length - 1] + calculateNext(numbers, length -1);
         }
     }
 }
