@@ -2,7 +2,6 @@ package org.nalda.adventofcode2023.poker;
 
 import org.nalda.adventofcode2023.ResourceUtil;
 
-import java.util.Comparator;
 import java.util.stream.Stream;
 
 public class Poker {
