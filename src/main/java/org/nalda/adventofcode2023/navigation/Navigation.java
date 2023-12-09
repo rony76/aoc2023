@@ -2,44 +2,37 @@ package org.nalda.adventofcode2023.navigation;
 
 import org.nalda.adventofcode2023.ResourceUtil;
 
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Navigation {
-
-    public static final String START_NODE_NAME = "AAA";
-    public static final String DESTINATION_NODE_NAME = "ZZZ";
 
     public static void main(String[] args) {
         final Navigation navigation = new Navigation();
         final List<String> input = ResourceUtil.getLineList("navigation-input.txt");
 
-        final long stepCount = navigation.countStepsToReachDestination(input);
-
-        System.out.println("Steps to reach destination: " + stepCount);
+        navigation.findPeriodicPaths(input)
+                .forEach(System.out::println);
     }
 
-    public long countStepsToReachDestination(List<String> input) {
-        var directionProvider = createDirectionProvider(input.get(0));
-        var stepCount = 0L;
+    public Stream<PeriodicPath> findPeriodicPaths(List<String> input) {
+        final String directionList = input.get(0);
+        final int period = directionList.length();
+        System.out.println("Period is " + period);
 
-        var graph = input.stream()
+        var nodeMap = input.stream()
                 .skip(2)
                 .map(Node::parse)
                 .collect(Collectors.toMap(n -> n.name, n -> n));
+        nodeMap.values().forEach(n -> n.resolve(nodeMap));
 
-        var currentNode = graph.get(START_NODE_NAME);
-        while (!currentNode.isDestination()) {
-            stepCount++;
-            final Direction nextMove = directionProvider.next();
-            final String nextNodeName = nextMove == Direction.LEFT ? currentNode.left : currentNode.right;
-
-            System.out.printf("%s, %s to ", currentNode, nextMove, nextNodeName);
-            currentNode = graph.get(nextNodeName);
-        }
-        return stepCount;
+        return nodeMap.values().stream()
+                .filter(Node::isStart)
+                .parallel()
+                .flatMap(n -> n.generateLoops(directionList, period));
     }
 
     private DirectionProvider createDirectionProvider(String directionList) {
@@ -50,12 +43,17 @@ public class Navigation {
         LEFT, RIGHT
     }
 
+    record PeriodicPath(String startNode, String endNode, long steps) {
+    }
+
     static class DirectionProvider {
         private final String directionList;
         private int index = 0;
+
         DirectionProvider(String directionList) {
             this.directionList = directionList;
         }
+
         Direction next() {
             final char c = directionList.charAt(index++);
             if (index >= directionList.length()) {
@@ -65,8 +63,29 @@ public class Navigation {
         }
     }
 
-    record Node(String name, String left, String right) {
-        static final Pattern PATTERN = Pattern.compile("([A-Z]+) = \\(([A-Z]+),\\s+([A-Z]+)\\)");
+    static final class Node {
+        static final Pattern PATTERN = Pattern.compile("(\\w+) = \\((\\w+),\\s+(\\w+)\\)");
+        private final String name;
+        private final String leftName;
+        private final String rightName;
+        private Node left;
+        private Node right;
+
+        Node(String name, String leftName, String rightName) {
+            this.name = name;
+            this.leftName = leftName;
+            this.rightName = rightName;
+        }
+
+        void resolve(Map<String, Node> nodeMap) {
+            left = nodeMap.get(leftName);
+            right = nodeMap.get(rightName);
+        }
+
+        Node go(Direction direction) {
+            return direction == Direction.LEFT ? left : right;
+        }
+
         static Node parse(String s) {
             final Matcher matcher = PATTERN.matcher(s);
             if (!matcher.find()) {
@@ -76,12 +95,62 @@ public class Navigation {
         }
 
         private boolean isDestination() {
-            return name.equals(DESTINATION_NODE_NAME);
+            return name.endsWith("Z");
+        }
+
+        private boolean isStart() {
+            return name.endsWith("A");
         }
 
         @Override
         public String toString() {
-            return "%s = (%s, %s)".formatted(name, left, right);
+            return "%s = (%s, %s)".formatted(name, leftName, rightName);
+        }
+
+        public String name() {
+            return name;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof Node)) return false;
+            Node node = (Node) o;
+            return name.equals(node.name);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(name);
+        }
+
+        public Stream<PeriodicPath> generateLoops(String directionList, int period) {
+            var directionProvider = new DirectionProvider(directionList);
+            var node = this;
+
+            Map<Node, List<Long>> destinationSteps = new HashMap<>();
+            var stepCount = 0L;
+            var loopFound = false;
+            while (!loopFound) {
+                stepCount++;
+                final Direction nextMove = directionProvider.next();
+                node = node.go(nextMove);
+                if (node.isDestination()) {
+                    final List<Long> stepForTheSameNodeInPreviousPaths = destinationSteps.computeIfAbsent(node, n -> new LinkedList<>());
+                    for (Long s : stepForTheSameNodeInPreviousPaths) {
+                        if ((stepCount - s) % period == 0) {
+                            loopFound = true;
+                            break;
+                        }
+                    }
+                    stepForTheSameNodeInPreviousPaths.add(stepCount);
+                }
+            }
+
+            String startName = this.name;
+            return destinationSteps.keySet().stream()
+                    .flatMap(dest -> destinationSteps.get(dest).stream()
+                            .map(s -> new PeriodicPath(startName, dest.name, s)));
         }
     }
 
