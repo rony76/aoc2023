@@ -2,7 +2,7 @@ package org.nalda.adventofcode2023.pipes;
 
 import static org.nalda.adventofcode2023.pipes.Direction.*;
 
-public enum PipeType {
+public enum PipeElement {
     GROUND(),
     START(),
     NORTH_SOUTH(NORTH, NORTH, SOUTH, SOUTH),
@@ -12,13 +12,16 @@ public enum PipeType {
     SOUTH_EAST(NORTH, EAST, WEST, SOUTH),
     SOUTH_WEST(NORTH, WEST, EAST, SOUTH);
 
-    private final Direction from1, to1, from2, to2;
+    private final Direction from1;
+    private final Direction to1;
+    private final Direction from2;
+    private final Direction to2;
 
-    PipeType() {
+    PipeElement() {
         this(null, null, null, null);
     }
 
-    PipeType(Direction from1, Direction to1, Direction from2, Direction to2) {
+    PipeElement(Direction from1, Direction to1, Direction from2, Direction to2) {
         this.from1 = from1;
         this.to1 = to1;
         this.from2 = from2;
@@ -26,7 +29,7 @@ public enum PipeType {
     }
 
 
-    static PipeType of(char c) {
+    static PipeElement of(char c) {
         return switch (c) {
             case '.' -> GROUND;
             case '|' -> NORTH_SOUTH;
