@@ -2,7 +2,6 @@ package org.nalda.adventofcode2023.galaxies;
 
 import org.junit.jupiter.api.Test;
 import org.nalda.adventofcode2023.ResourceUtil;
-import org.nalda.adventofcode2023.galaxies.UniverseScanner.UniverseMap;
 
 import java.util.List;
 
@@ -13,7 +12,8 @@ class UniverseScannerTest {
     void canScanAcceptance() {
         final List<String> input = ResourceUtil.getLineList("galaxies-acceptance.txt");
 
-        final UniverseMap universeMap = new UniverseScanner(input).buildUniverseMap();
+        UniverseScanner universeScanner = new UniverseScanner(input);
+        final UniverseMap universeMap = universeScanner.scan();
 
         assertThat(universeMap.toString()).isEqualTo(
                 "...#......\n" +

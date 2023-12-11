@@ -5,6 +5,8 @@ import org.nalda.adventofcode2023.ResourceUtil;
 import java.util.*;
 
 public class Galaxies {
+    private final UniverseMap map;
+
     public static void main(String[] args) {
         final List<String> input = ResourceUtil.getLineList("galaxies-input.txt");
         final Galaxies galaxies = new Galaxies(input);
@@ -13,23 +15,20 @@ public class Galaxies {
         System.out.println("Sum of shortest paths: " + sumOfShortestPaths);
     }
 
-    private final List<GalaxyPosition> positions;
-    record GalaxyPosition(int x, int y) {
+    record GalaxyPosition(long row, long column) {
         public long getDistanceTo(GalaxyPosition target) {
-            return Math.abs(x - target.x) + Math.abs(y - target.y);
+            return Math.abs(row - target.row) + Math.abs(column - target.column);
         }
-
     }
 
     public Galaxies(List<String> input) {
-        this.positions = getGalaxyPositions(input);
-    }
-
-    private List<GalaxyPosition> getGalaxyPositions(List<String> input) {
-        return new UniverseScanner(input).findPositions();
+        final UniverseScanner universeScanner = new UniverseScanner(input);
+        this.map = universeScanner.scan();
     }
 
     public long findSumOfShortestPaths() {
+        var positions = map.findPositions();
+
         long result = 0L;
 
         for (int s = 0; s < positions.size(); s++) {
