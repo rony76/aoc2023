@@ -5,12 +5,13 @@ import org.nalda.adventofcode2023.ResourceUtil;
 import java.util.*;
 
 public class Galaxies {
+    public static final long EXPANSION_RATE = 1000000L;
     private final UniverseMap map;
 
     public static void main(String[] args) {
         final List<String> input = ResourceUtil.getLineList("galaxies-input.txt");
         final Galaxies galaxies = new Galaxies(input);
-        final long sumOfShortestPaths = galaxies.findSumOfShortestPaths();
+        final long sumOfShortestPaths = galaxies.findSumOfShortestPaths(EXPANSION_RATE);
 
         System.out.println("Sum of shortest paths: " + sumOfShortestPaths);
     }
@@ -26,8 +27,8 @@ public class Galaxies {
         this.map = universeScanner.scan();
     }
 
-    public long findSumOfShortestPaths() {
-        var positions = map.findPositions();
+    public long findSumOfShortestPaths(long expansionRate) {
+        var positions = map.findPositions(expansionRate);
 
         long result = 0L;
 

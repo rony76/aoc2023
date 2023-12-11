@@ -6,9 +6,6 @@ import java.util.List;
 import java.util.Set;
 
 public record UniverseMap(boolean[][] map, int height, int width) {
-    public static final long EXPANSION_RATE = 2L;
-
-
     @Override
     public String toString() {
         var buf = new StringBuilder();
@@ -27,7 +24,7 @@ public record UniverseMap(boolean[][] map, int height, int width) {
         return buf.toString();
     }
 
-    public List<Galaxies.GalaxyPosition> findPositions() {
+    public List<Galaxies.GalaxyPosition> findPositions(long expansionRate) {
         var emptyRows = findEmptyRows();
         var emptyColumns = findEmptyColumns();
 
@@ -43,15 +40,15 @@ public record UniverseMap(boolean[][] map, int height, int width) {
                 }
                 column++;
                 expandedColumn++;
-                if (emptyColumns.contains(column)) {
-                    expandedColumn += EXPANSION_RATE;
+                while (emptyColumns.contains(column)) {
+                    expandedColumn += expansionRate;
                     column++;
                 }
             }
             row++;
             expandedRow++;
-            if (emptyRows.contains(row)) {
-                expandedRow += EXPANSION_RATE;
+            while (emptyRows.contains(row)) {
+                expandedRow += expansionRate;
                 row++;
             }
         }

@@ -13,7 +13,7 @@ class GalaxiesTest {
         final List<String> input = ResourceUtil.getLineList("galaxies-acceptance.txt");
 
         final Galaxies galaxies = new Galaxies(input);
-        final long sumOfShortestPaths = galaxies.findSumOfShortestPaths();
+        final long sumOfShortestPaths = galaxies.findSumOfShortestPaths(2L);
 
         assertThat(sumOfShortestPaths).isEqualTo(374);
     }
