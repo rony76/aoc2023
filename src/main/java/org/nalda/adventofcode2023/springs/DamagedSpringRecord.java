@@ -13,92 +13,156 @@ public class DamagedSpringRecord {
         this.groups = groups;
     }
 
-    private enum MatcherState {
-        ACCEPTS_BOTH,
-        NEEDS_OPERATIONAL,
-        NEEDS_DAMAGED
+    private abstract class MatcherState {
+        protected final int groupIndex;
+
+        protected MatcherState(int groupIndex) {
+            this.groupIndex = groupIndex;
+        }
+
+        boolean hasFailed() {
+            return false;
+        }
+
+        abstract boolean isValidFinal();
+        abstract MatcherState process(SpringCondition condition);
+    }
+
+    private class AcceptsBothState extends MatcherState {
+        protected AcceptsBothState(int groupIndex) {
+            super(groupIndex);
+        }
+
+        @Override
+        boolean isValidFinal() {
+            return groupIndex == groups.length;
+        }
+
+        @Override
+        MatcherState process(SpringCondition condition) {
+            switch (condition) {
+                case UNKNOWN -> {
+                    throw new UnsupportedOperationException();
+                }
+                case OPERATIONAL -> {
+                    return this;
+                }
+                case DAMAGED -> {
+                    var group = groups[groupIndex];
+                    if (group == 1) {
+                        return new NeedsOperationalState(groupIndex + 1);
+                    } else {
+                        return new NeedsDamagedState(groupIndex, group - 1);
+                    }
+                }
+            }
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    private class NeedsOperationalState extends MatcherState {
+        protected NeedsOperationalState(int groupIndex) {
+            super(groupIndex);
+        }
+
+        @Override
+        boolean isValidFinal() {
+            return groupIndex == groups.length;
+        }
+
+        @Override
+        MatcherState process(SpringCondition condition) {
+            switch (condition) {
+                case UNKNOWN -> {
+                    throw new UnsupportedOperationException();
+                }
+                case OPERATIONAL -> {
+                    return new AcceptsBothState(groupIndex);
+                }
+                case DAMAGED -> {
+                    return new FailedState();
+                }
+            }
+
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    private class NeedsDamagedState extends MatcherState {
+        private final int expectedDamaged;
+
+        private NeedsDamagedState(int groupIndex, int expectedDamaged) {
+            super(groupIndex);
+            this.expectedDamaged = expectedDamaged;
+        }
+
+        @Override
+        boolean isValidFinal() {
+            return false;
+        }
+
+        @Override
+        MatcherState process(SpringCondition condition) {
+            switch (condition) {
+                case UNKNOWN -> {
+                    throw new UnsupportedOperationException();
+                }
+                case OPERATIONAL -> {
+                    return new FailedState();
+                }
+                case DAMAGED -> {
+                    if (expectedDamaged == 1) {
+                        return new NeedsOperationalState(groupIndex + 1);
+                    }
+                    return new NeedsDamagedState(groupIndex, expectedDamaged - 1);
+                }
+            }
+
+            throw new UnsupportedOperationException();
+        }
+    }
+    private class FailedState extends MatcherState {
+        protected FailedState() {
+            super(-1);
+        }
+
+        @Override
+        boolean hasFailed() {
+            return true;
+        }
+
+        @Override
+        boolean isValidFinal() {
+            return false;
+        }
+
+        @Override
+        MatcherState process(SpringCondition condition) {
+            throw new UnsupportedOperationException();
+        }
     }
 
     public long getNumberOfArrangements() {
         int condIndex = 0;
-        int groupIndex = 0;
-        int expectedDamaged = 0;
-        boolean failed = false;
 
-        MatcherState state = MatcherState.ACCEPTS_BOTH;
+        MatcherState state = new AcceptsBothState(0);
 
-        while (!failed && condIndex < conditions.length) {
+        while (condIndex < conditions.length) {
             final SpringCondition condition = conditions[condIndex];
 
-            switch (state) {
-                case ACCEPTS_BOTH -> {
-                    switch (condition) {
-                        case UNKNOWN -> {
-                            throw new UnsupportedOperationException();
-                        }
-                        case OPERATIONAL -> {
-                            // it's fine, we can stay here...
-                        }
-                        case DAMAGED -> {
-                            var group = groups[groupIndex];
-                            if (group == 1) {
-                                groupIndex++;
-                                state = MatcherState.NEEDS_OPERATIONAL;
-                            } else {
-                                state = MatcherState.NEEDS_DAMAGED;
-                                expectedDamaged = group - 1;
-                            }
-                        }
-                    }
-                }
-                case NEEDS_DAMAGED -> {
-                    switch (condition) {
-                        case UNKNOWN -> {
-                            throw new UnsupportedOperationException();
-                        }
-                        case OPERATIONAL -> {
-                            failed = true;
-                        }
-                        case DAMAGED -> {
-                            expectedDamaged--;
-                            if (expectedDamaged == 0) {
-                                groupIndex++;
-                                state = MatcherState.NEEDS_OPERATIONAL;
-                            }
-                        }
-                    }
-                }
+            state = state.process(condition);
 
-                case NEEDS_OPERATIONAL -> {
-                    switch (condition) {
-                        case UNKNOWN -> {
-                            throw new UnsupportedOperationException();
-                        }
-                        case OPERATIONAL -> {
-                            state = MatcherState.ACCEPTS_BOTH;
-                        }
-                        case DAMAGED -> {
-                            failed = true;
-                        }
-                    }
-                }
+            if (state.hasFailed()) {
+                return 0L;
             }
 
             condIndex++;
         }
 
-        if (failed) {
-            return 0L;
-        }
-
-        if (groupIndex == groups.length && isValidFinalState(state)) {
+        if (state.isValidFinal()) {
             return 1L;
         }
 
         return 0L;
-    }
-
-    private boolean isValidFinalState(MatcherState state) {
-        return state == MatcherState.ACCEPTS_BOTH || state == MatcherState.NEEDS_OPERATIONAL;
     }
 }

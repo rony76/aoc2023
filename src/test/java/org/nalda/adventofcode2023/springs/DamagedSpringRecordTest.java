@@ -37,4 +37,19 @@ class DamagedSpringRecordTest {
         assertEquals(1, arrangements);
 
     }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "#.#.### 1,1,4",
+            ".#...#... 1,1,3",
+            ".#.####.###### 1,3,1,6"
+    })
+    void rejectsRecordWithNoUnknowns(String recordText) {
+        final DamagedSpringRecord record = new SpringRecordParser().parse(recordText);
+
+        final long arrangements = record.getNumberOfArrangements();
+
+        assertEquals(0, arrangements);
+
+    }
 }
