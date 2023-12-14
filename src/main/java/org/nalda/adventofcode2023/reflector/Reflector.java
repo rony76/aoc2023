@@ -1,30 +1,52 @@
 package org.nalda.adventofcode2023.reflector;
 
-import org.nalda.adventofcode2023.ResourceUtil;
+import lombok.Getter;
 
 import java.util.List;
 
+@Getter
 public class Reflector {
-    private static final char ROUND_ROCK = 'O';
-    private static final char SQUARE_ROCK = '#';
-    private static final char EMPTY = '.';
+    public static final char ROUND_ROCK = 'O';
+    public static final char SQUARE_ROCK = '#';
+    public static final char EMPTY = '.';
 
-    public long findNorthWeight(List<String> input) {
+    private final String data;
+    private final int width;
+    private final int height;
+
+    public Reflector(String data, int width) {
+        this.data = data;
+        this.width = width;
+        this.height = data.length() / width;
+    }
+
+    public static Reflector fromStrings(List<String> input) {
+        final StringBuilder buf = new StringBuilder();
         final int width = input.get(0).length();
+        for (String line : input) {
+            buf.append(line);
+        }
+
+        return new Reflector(buf.toString(), width);
+    }
+
+    public long findNorthWeight() {
         long result = 0;
         for (int column = 0; column < width; column++) {
-            result += findNorthColumnWeight(input, column);
+            result += findNorthColumnWeight(column);
         }
         return result;
     }
 
-    private long findNorthColumnWeight(List<String> input, int column) {
-        final int height = input.size();
+    public char at(int row, int column) {
+        return data.charAt(row * width + column);
+    }
 
+    private long findNorthColumnWeight(int column) {
         int nextWeight = height;
         long totalWeight = 0;
         for (int row = 0; row < height; row++) {
-            final char current = input.get(row).charAt(column);
+            final char current = at(row, column);
             switch (current) {
                 case ROUND_ROCK:
                     totalWeight += nextWeight;
@@ -42,13 +64,4 @@ public class Reflector {
         return totalWeight;
     }
 
-    public static void main(String[] args) {
-        final List<String> input = ResourceUtil.getLineList("reflector-input.txt");
-        final Reflector reflector = new Reflector();
-
-        final long northWeight = reflector.findNorthWeight(input);
-
-        System.out.println("North weight: " + northWeight);
-
-    }
 }
