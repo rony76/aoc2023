@@ -12,7 +12,7 @@ class SpringRecordParserTest {
 
         final DamagedSpringRecord record = new SpringRecordParser().parse(input);
 
-        assertThat(record.getConditions()).containsExactly(UNKNOWN, UNKNOWN, UNKNOWN, OPERATIONAL, DAMAGED, DAMAGED, DAMAGED);
+        assertThat(record.getLine()).isEqualTo("???.###");
         assertThat(record.getGroups()).containsExactly(1, 1, 3);
     }
 }

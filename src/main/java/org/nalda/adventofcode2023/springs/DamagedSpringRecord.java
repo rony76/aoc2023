@@ -1,168 +1,99 @@
 package org.nalda.adventofcode2023.springs;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
-@Getter
-public class DamagedSpringRecord {
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
-    private final SpringCondition[] conditions;
+@Getter
+@EqualsAndHashCode
+public class DamagedSpringRecord {
+    private final String line;
     private final int[] groups;
 
-    public DamagedSpringRecord(SpringCondition[] conditions, int[] groups) {
-        this.conditions = conditions;
+    public DamagedSpringRecord(String line, int[] groups) {
+        this.line = line;
         this.groups = groups;
     }
 
-    private abstract class MatcherState {
-        protected final int groupIndex;
-
-        protected MatcherState(int groupIndex) {
-            this.groupIndex = groupIndex;
-        }
-
-        boolean hasFailed() {
-            return false;
-        }
-
-        abstract boolean isValidFinal();
-        abstract MatcherState process(SpringCondition condition);
+    @Override
+    public String toString() {
+        return line + " " + Arrays.toString(groups);
     }
 
-    private class AcceptsBothState extends MatcherState {
-        protected AcceptsBothState(int groupIndex) {
-            super(groupIndex);
+    public long arrangements() {
+        final Map<DamagedSpringRecord, Long> cache = new HashMap<>();
+
+        return arrangements(cache);
+    }
+
+    public long arrangements(Map<DamagedSpringRecord, Long> cache) {
+        var cachedResult = cache.get(this);
+        if (cachedResult != null) {
+            return cachedResult;
         }
 
-        @Override
-        boolean isValidFinal() {
-            return groupIndex == groups.length;
+        long result = arrangementsPreMemoize(cache);
+
+        cache.put(this, result);
+        return result;
+    }
+
+    private long arrangementsPreMemoize(Map<DamagedSpringRecord, Long> cache) {
+        if (groups.length == 0) {
+            return line.contains("#") ? 0L : 1L;
         }
 
-        @Override
-        MatcherState process(SpringCondition condition) {
-            switch (condition) {
-                case UNKNOWN -> {
-                    throw new UnsupportedOperationException();
-                }
-                case OPERATIONAL -> {
-                    return this;
-                }
-                case DAMAGED -> {
-                    var group = groups[groupIndex];
-                    if (group == 1) {
-                        return new NeedsOperationalState(groupIndex + 1);
-                    } else {
-                        return new NeedsDamagedState(groupIndex, group - 1);
-                    }
+        if (line.length() < groups[0]) {
+            return 0L;
+        }
+
+        switch (line.charAt(0)) {
+            case '.' -> {
+                return new DamagedSpringRecord(line.substring(1), groups).arrangements(cache);
+            }
+            case '#' -> {
+                var sizeBlock = line.substring(0, groups[0]);
+                var rest = line.substring(groups[0]);
+                if (sizeBlock.contains(".") || rest.startsWith("#")) {
+                    return 0L;
+                } else {
+                    final int[] groupRest = groups.length > 1 ? groupTail() : new int[0];
+                    rest = rest.isEmpty() ? "." : "." + rest.substring(1);
+                    return new DamagedSpringRecord(rest, groupRest).arrangements(cache);
                 }
             }
-            throw new UnsupportedOperationException();
-        }
-    }
-
-    private class NeedsOperationalState extends MatcherState {
-        protected NeedsOperationalState(int groupIndex) {
-            super(groupIndex);
-        }
-
-        @Override
-        boolean isValidFinal() {
-            return groupIndex == groups.length;
-        }
-
-        @Override
-        MatcherState process(SpringCondition condition) {
-            switch (condition) {
-                case UNKNOWN -> {
-                    throw new UnsupportedOperationException();
-                }
-                case OPERATIONAL -> {
-                    return new AcceptsBothState(groupIndex);
-                }
-                case DAMAGED -> {
-                    return new FailedState();
-                }
+            case '?' -> {
+                var arrangementsWithOp = new DamagedSpringRecord(line.substring(1), groups).arrangements(cache);
+                var arrangementsWithDamaged = new DamagedSpringRecord("#" + line.substring(1), groups).arrangements(cache);
+                return arrangementsWithOp + arrangementsWithDamaged;
             }
-
-            throw new UnsupportedOperationException();
+            default -> throw new IllegalStateException("Unexpected value: " + line.charAt(0));
         }
     }
 
-    private class NeedsDamagedState extends MatcherState {
-        private final int expectedDamaged;
+    private int[] groupTail() {
+        return Arrays.copyOfRange(this.groups, 1, groups.length);
+    }
 
-        private NeedsDamagedState(int groupIndex, int expectedDamaged) {
-            super(groupIndex);
-            this.expectedDamaged = expectedDamaged;
-        }
-
-        @Override
-        boolean isValidFinal() {
-            return false;
-        }
-
-        @Override
-        MatcherState process(SpringCondition condition) {
-            switch (condition) {
-                case UNKNOWN -> {
-                    throw new UnsupportedOperationException();
-                }
-                case OPERATIONAL -> {
-                    return new FailedState();
-                }
-                case DAMAGED -> {
-                    if (expectedDamaged == 1) {
-                        return new NeedsOperationalState(groupIndex + 1);
-                    }
-                    return new NeedsDamagedState(groupIndex, expectedDamaged - 1);
-                }
+    public DamagedSpringRecord unfold(int times) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < times; i++) {
+            if (i > 0) {
+                sb.append("?");
             }
-
-            throw new UnsupportedOperationException();
-        }
-    }
-    private class FailedState extends MatcherState {
-        protected FailedState() {
-            super(-1);
+            sb.append(line);
         }
 
-        @Override
-        boolean hasFailed() {
-            return true;
-        }
-
-        @Override
-        boolean isValidFinal() {
-            return false;
-        }
-
-        @Override
-        MatcherState process(SpringCondition condition) {
-            throw new UnsupportedOperationException();
-        }
-    }
-
-    public long getNumberOfArrangements() {
-        int condIndex = 0;
-
-        MatcherState state = new AcceptsBothState(0);
-
-        while (condIndex < conditions.length) {
-            final SpringCondition condition = conditions[condIndex];
-
-            state = state.process(condition);
-
-            if (state.hasFailed()) {
-                return 0L;
+        final int[] unfoldedGroups = new int[groups.length * times];
+        for (int j = 0; j < times; j++) {
+            for (int i = 0; i < groups.length; i++) {
+                unfoldedGroups[j * groups.length + i] = groups[i];
             }
-
-            condIndex++;
         }
 
-        if (state.isValidFinal()) {
-            return 1L;
-        }
-
-        return 0L;
+        return new DamagedSpringRecord(sb.toString(), unfoldedGroups);
     }
 }
