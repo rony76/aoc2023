@@ -9,31 +9,26 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ReflectorsTest {
     @Test
-    void acceptance() {
+    void acceptanceNorthWeight() {
         final List<String> input = ResourceUtil.getLineList("reflector-acceptance.txt");
-        final Reflector reflector = Reflector.fromStrings(input);
+        Reflector reflector = Reflector.fromStrings(input);
 
+        reflector = reflector.tiltNorth();
         final long northWeight = reflector.findNorthWeight();
 
         assertThat(northWeight).isEqualTo(136);
     }
 
     @Test
-    void findWeightForSingleColumnWithOnlyRoundRocks() {
-        var r = new Reflector("OO.O.O..##", 1);
+    void acceptanceABillionCycles() {
+        final List<String> input = ResourceUtil.getLineList("reflector-acceptance.txt");
+        var reflector = Reflector.fromStrings(input);
 
-        var northWeight = r.findNorthWeight();
+        reflector = reflector.rotateABillionTimes();
 
-        assertThat(northWeight).isEqualTo(34L);
-    }
+        final long northWeight = reflector.findNorthWeight();
 
-    @Test
-    void findWeightForSingleColumnWithOneSquareRocks() {
-        var r = new Reflector(".O...#O..O", 1);
-
-        var northWeight = r.findNorthWeight();
-
-        assertThat(northWeight).isEqualTo(17L);
+        assertThat(northWeight).isEqualTo(64);
     }
 
     @Test

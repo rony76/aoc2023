@@ -4,14 +4,17 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Getter
-@EqualsAndHashCode
+@EqualsAndHashCode(of = "data")
 public class Reflector {
     public static final char ROUND_ROCK = 'O';
     public static final char SQUARE_ROCK = '#';
     public static final char EMPTY = '.';
+    public static final int MAX_CYCLE_COUNT = 1000000000;
 
     private final String data;
     private final int width;
@@ -31,6 +34,49 @@ public class Reflector {
         }
 
         return new Reflector(buf.toString(), width);
+    }
+
+    Reflector rotateABillionTimes() {
+        Reflector reflector = this;
+        Map<Reflector, Long> seen = new HashMap<>();
+        long i = 0;
+        long cycleEnd = 0;
+        long cycleLength = 0;
+        while (i < MAX_CYCLE_COUNT) {
+            reflector = reflector.cycle();
+
+            progress(i);
+
+            if (seen.containsKey(reflector)) {
+                System.out.println();
+                System.out.println("Cycle detected at " + i);
+                cycleEnd = i;
+                cycleLength = i - seen.get(reflector);
+                System.out.println("Cycle length: " + cycleLength);
+                break;
+            }
+            seen.put(reflector, i);
+            i++;
+        }
+        if (i == MAX_CYCLE_COUNT) {
+            System.out.println("No cycle detected!");
+            return null;
+        }
+
+        long pendingCycles = MAX_CYCLE_COUNT - cycleEnd;
+        long neededCycles = pendingCycles % cycleLength;
+        for (long c = 0; c < neededCycles - 1; c++) {
+            reflector = reflector.cycle();
+        }
+
+        return reflector;
+    }
+
+    private static void progress(long i) {
+        System.out.print("*");
+        if (i % 80 == 0) {
+            System.out.println(" " + i);
+        }
     }
 
     @Override
@@ -67,16 +113,14 @@ public class Reflector {
             switch (current) {
                 case ROUND_ROCK:
                     totalWeight += nextWeight;
-                    nextWeight--;
                     break;
                 case SQUARE_ROCK:
-                    nextWeight = height - row - 1;
-                    break;
                 case EMPTY:
                     break;
                 default:
                     throw new IllegalArgumentException("Unknown character: " + current);
             }
+            nextWeight--;
         }
         return totalWeight;
     }
@@ -155,7 +199,7 @@ public class Reflector {
             public int getDataIndex(Reflector r, int lane, int level) {
                 return lane * r.width + level;
             }
-        };
+        }
     }
 
     public Reflector tiltNorth() {
