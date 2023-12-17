@@ -35,10 +35,6 @@ public class Navigation {
                 .flatMap(n -> n.generateLoops(directionList, period));
     }
 
-    private DirectionProvider createDirectionProvider(String directionList) {
-        return new DirectionProvider(directionList);
-    }
-
     enum Direction {
         LEFT, RIGHT
     }
