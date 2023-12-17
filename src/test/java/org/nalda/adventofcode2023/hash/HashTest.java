@@ -11,12 +11,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class HashTest {
     @Test
-    void acceptance() {
+    void acceptanceStar1() {
         final Hash hash = new Hash();
 
         long sum = hash.stepSum("rn=1,cm-,qp=3,cm=2,qp-,pc=4,ot=9,ab=5,pc-,pc=6,ot=7");
 
         assertThat(sum).isEqualTo(1320);
+    }
+
+    @Test
+    void acceptanceStar2() {
+        final Hash hash = new Hash();
+
+        long power = hash.calculateFocusingPower("rn=1,cm-,qp=3,cm=2,qp-,pc=4,ot=9,ab=5,pc-,pc=6,ot=7");
+
+        assertThat(power).isEqualTo(145);
     }
 
     public static Stream<Arguments> stepSamples() {
