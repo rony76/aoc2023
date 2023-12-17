@@ -23,7 +23,33 @@ public class BeamBounce {
     }
 
     public long countEnergised() {
-        return new BeamWalk().invoke();
+        final BeamWalk walk = new BeamWalk();
+        return walk.countEnergisedStartingFrom(new Move(0, 0, EAST));
+    }
+
+    public long countMaxEnergised() {
+        List<Move> startMoves = new ArrayList<>((width + height) * 2);
+        addVerticalBorders(startMoves);
+        addHorizontalBorders(startMoves);
+
+        return startMoves.parallelStream()
+                .mapToLong(start -> new BeamWalk().countEnergisedStartingFrom(start))
+                .max()
+                .orElseThrow();
+    }
+
+    private void addHorizontalBorders(List<Move> startMoves) {
+        for (int y = 0; y < height; y++) {
+            startMoves.add(new Move(0, y, EAST));
+            startMoves.add(new Move(width - 1, y, WEST));
+        }
+    }
+
+    private void addVerticalBorders(List<Move> startMoves) {
+        for (int x = 0; x < width; x++) {
+            startMoves.add(new Move(x, 0, SOUTH));
+            startMoves.add(new Move(x, height - 1, NORTH));
+        }
     }
 
     private record Move(int x, int y, Direction direction) {
@@ -107,15 +133,14 @@ public class BeamBounce {
     }
 
     private class BeamWalk {
-
         private int[][] energyGrid;
-        private Queue<Move> moves = new LinkedList<>();
-        private Set<Move> visited = new HashSet<>();
 
-        public long invoke() {
+        public long countEnergisedStartingFrom(Move start) {
+            Queue<Move> moves = new LinkedList<>();
+            Set<Move> visited = new HashSet<>();
             initEnergyGrid();
 
-            moves.offer(new Move(0, 0, EAST));
+            moves.offer(start);
             while (!moves.isEmpty()) {
                 Move move = moves.poll();
                 energyGrid[move.y][move.x] = 1;
@@ -163,5 +188,9 @@ public class BeamBounce {
         long energised = beamBounce.countEnergised();
 
         System.out.println("Energised: " + energised);
+
+        long maxEnergised = beamBounce.countMaxEnergised();
+
+        System.out.println("Max energised: " + maxEnergised);
     }
 }
