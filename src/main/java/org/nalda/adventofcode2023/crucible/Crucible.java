@@ -41,11 +41,8 @@ public class Crucible {
         }
     }
 
-    private record Move(Node node, Direction direction, int stepCount) {
-    }
-
-    public long findMinimumHeatLoss() {
-        return new Dijkstra().invoke();
+    public long findMinimumHeatLoss(int minStep, int maxStep) {
+        return new Dijkstra(minStep, maxStep).visit();
     }
 
     private boolean onBorder(Node p, Direction d) {
@@ -58,10 +55,17 @@ public class Crucible {
     }
 
     private class Dijkstra {
+        private final int minStep;
+        private final int maxStep;
         private Map<Node, Long> pathLosses;
         private PriorityQueue<Node> toBeVisited;
 
-        public long invoke() {
+        public Dijkstra(int minStep, int maxStep) {
+            this.minStep = minStep;
+            this.maxStep = maxStep;
+        }
+
+        public long visit() {
             initialiseLosses();
             initialiseToBeVisited();
 
@@ -82,6 +86,7 @@ public class Crucible {
 
             return pathLosses.entrySet().stream()
                     .filter(e -> e.getKey().row == height - 1 && e.getKey().col == width - 1)
+                    .filter(e -> e.getKey().steps >= minStep)
                     .mapToLong(Map.Entry::getValue)
                     .min()
                     .orElseThrow();
@@ -98,8 +103,12 @@ public class Crucible {
         }
 
         private Stream<Node> findAdjacent(Node source) {
-            Stream<Direction> dirStream = source.dir.getCrossStream();
-            if (source.steps < 3) {
+            Stream<Direction> dirStream = Stream.empty();
+            if (source.steps >= minStep) {
+                dirStream = source.dir.getCrossStream();
+            }
+
+            if (source.steps < maxStep) {
                 dirStream = Stream.concat(dirStream, Stream.of(source.dir));
             }
 
@@ -114,9 +123,13 @@ public class Crucible {
         final Crucible crucible = new Crucible(input);
 
         Timing.runAndTrack(() -> {
-            long loss = crucible.findMinimumHeatLoss();
+            long loss = crucible.findMinimumHeatLoss(1, 3);
 
-            System.out.println("Minimal loss: " + loss);
+            System.out.println("Minimal loss for crucible: " + loss);
+
+            loss = crucible.findMinimumHeatLoss(4, 10);
+
+            System.out.println("Minimal loss for ultra crucible: " + loss);
         });
     }
 }

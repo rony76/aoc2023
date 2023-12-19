@@ -9,12 +9,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class CrucibleTest {
     @Test
-    void acceptance() {
+    void acceptance1() {
         final List<String> input = ResourceUtil.getLineList("crucible-acceptance.txt");
         final Crucible crucible = new Crucible(input);
 
-        long loss = crucible.findMinimumHeatLoss();
+        long loss = crucible.findMinimumHeatLoss(1, 3);
 
         assertThat(loss).isEqualTo(102);
+    }
+
+    @Test
+    void acceptance2() {
+        final List<String> input = ResourceUtil.getLineList("crucible-acceptance.txt");
+        final Crucible crucible = new Crucible(input);
+
+        long loss = crucible.findMinimumHeatLoss(4, 10);
+
+        assertThat(loss).isEqualTo(94);
     }
 }
