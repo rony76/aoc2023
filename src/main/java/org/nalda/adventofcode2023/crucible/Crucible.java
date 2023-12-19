@@ -1,13 +1,14 @@
 package org.nalda.adventofcode2023.crucible;
 
+import org.nalda.adventofcode2023.ResourceUtil;
+import org.nalda.adventofcode2023.Timing;
 import org.nalda.adventofcode2023.pipes.Direction;
 
 import java.util.*;
-import java.util.stream.Collectors;
-
-import static org.nalda.adventofcode2023.pipes.Direction.*;
+import java.util.stream.Stream;
 
 public class Crucible {
+    public static final Node START_NODE = new Node(0, 0, Direction.EAST, 0);
     private final int[][] localLosses;
     private final int height;
     private final int width;
@@ -24,25 +25,30 @@ public class Crucible {
         }
     }
 
-    private record Point(int row, int col) {
-        private Point moveTo(Direction d) {
-            return switch (d) {
-                case NORTH -> new Point(row - 1, col);
-                case WEST -> new Point(row, col - 1);
-                case SOUTH -> new Point(row + 1, col);
-                case EAST -> new Point(row, col + 1);
+    private record Node(int row, int col, Direction dir, int steps) {
+        public Node moveTo(Direction dir) {
+            var newSteps = this.dir == dir ? steps + 1 : 1;
+            return switch (dir) {
+                case NORTH -> new Node(row - 1, col, dir, newSteps);
+                case EAST -> new Node(row, col + 1, dir, newSteps);
+                case SOUTH -> new Node(row + 1, col, dir, newSteps);
+                case WEST -> new Node(row, col - 1, dir, newSteps);
             };
+        }
+
+        public boolean isWithinBounds(int height, int width) {
+            return row >= 0 && row < height && col >= 0 && col < width;
         }
     }
 
-    private record Move(Point point, Direction direction, int stepCount) {
+    private record Move(Node node, Direction direction, int stepCount) {
     }
 
     public long findMinimumHeatLoss() {
         return new Dijkstra().invoke();
     }
 
-    private boolean onBorder(Point p, Direction d) {
+    private boolean onBorder(Node p, Direction d) {
         return switch (d) {
             case NORTH -> p.row == 0;
             case WEST -> p.col == 0;
@@ -52,91 +58,65 @@ public class Crucible {
     }
 
     private class Dijkstra {
-
-        private Set<Point> visited;
-        private Move[][] parents;
-        private long[][] pathLosses;
-        private PriorityQueue<Point> toBeVisited;
+        private Map<Node, Long> pathLosses;
+        private PriorityQueue<Node> toBeVisited;
 
         public long invoke() {
-            visited = new HashSet<>();
-            initParents();
             initialiseLosses();
             initialiseToBeVisited();
-            Point destination = new Point(height - 1, width - 1);
 
             while (!toBeVisited.isEmpty()) {
-                Point current = toBeVisited.poll();
-                Move prevMove = parents[current.row][current.col];
-                List<Direction> possibleDirections = findDirections(current, prevMove);
-                if (current.equals(destination)) {
+                Node current = toBeVisited.poll();
+                if (current.row == width - 1 && current.col == height - 1) {
                     break;
                 }
-                for (Direction direction : possibleDirections) {
-                    Point nextPoint = current.moveTo(direction);
-                    long pathLossViaCurrentPoint = pathLosses[current.row][current.col] + localLosses[nextPoint.row][nextPoint.col];
-                    if (pathLossViaCurrentPoint < pathLosses[nextPoint.row][nextPoint.col]) {
-                        pathLosses[nextPoint.row][nextPoint.col] = pathLossViaCurrentPoint;
-                        storeMove(current, prevMove, direction, nextPoint);
-                        toBeVisited.add(nextPoint);
+
+                findAdjacent(current).forEach(nextNode -> {
+                    long pathLossViaCurrentPoint = pathLosses.get(current) + localLosses[nextNode.row][nextNode.col];
+                    if (pathLossViaCurrentPoint < pathLosses.getOrDefault(nextNode, Long.MAX_VALUE)) {
+                        pathLosses.put(nextNode, pathLossViaCurrentPoint);
+                        toBeVisited.add(nextNode);
                     }
-                }
-                visited.add(current);
+                });
             }
 
-            return pathLosses[destination.row][destination.col];
-        }
-
-        private void storeMove(Point current, Move prevMove, Direction direction, Point nextPoint) {
-            var stepCount = prevMove.direction.equals(direction) ? prevMove.stepCount + 1 : 1;
-            parents[nextPoint.row][nextPoint.col] = new Move(current, direction, stepCount);
-        }
-
-        private void initParents() {
-            parents = new Move[height][width];
-            for (int i = 0; i < height; i++) {
-                Arrays.fill(parents[i], null);
-            }
-            parents[0][0] = new Move(new Point(0, -1), EAST, 0);
+            return pathLosses.entrySet().stream()
+                    .filter(e -> e.getKey().row == height - 1 && e.getKey().col == width - 1)
+                    .mapToLong(Map.Entry::getValue)
+                    .min()
+                    .orElseThrow();
         }
 
         private void initialiseToBeVisited() {
-            toBeVisited = new PriorityQueue<>(Comparator.comparingLong(p -> pathLosses[p.row][p.col]));
-            toBeVisited.add(new Point(0, 0));
+            toBeVisited = new PriorityQueue<>(Comparator.comparingLong(p -> pathLosses.get(p)));
+            toBeVisited.add(START_NODE);
         }
 
         private void initialiseLosses() {
-            pathLosses = new long[height][width];
-            for (int row = 0; row < height; row++) {
-                Arrays.fill(pathLosses[row], Long.MAX_VALUE);
-            }
-            pathLosses[0][0] = 0;
+            pathLosses = new HashMap<>();
+            pathLosses.put(START_NODE, 0L);
         }
 
-        private List<Direction> findDirections(Point source, Move prevMove) {
-            return Arrays.stream(values())
-                    .filter(d -> isMoveToDirectionValid(source, prevMove, d))
-                    .collect(Collectors.toList());
+        private Stream<Node> findAdjacent(Node source) {
+            Stream<Direction> dirStream = source.dir.getCrossStream();
+            if (source.steps < 3) {
+                dirStream = Stream.concat(dirStream, Stream.of(source.dir));
+            }
+
+            return dirStream
+                    .map(source::moveTo)
+                    .filter(node -> node.isWithinBounds(height, width));
         }
+    }
 
-        private boolean isMoveToDirectionValid(Point source, Move prevMove, Direction dir) {
-            // cannot go out of bounds
-            if (onBorder(source, dir)) {
-                return false;
-            }
+    public static void main(String[] args) {
+        final List<String> input = ResourceUtil.getLineList("crucible-input.txt");
+        final Crucible crucible = new Crucible(input);
 
-            // cannot go back to previous point
-            if (prevMove.direction.isOpposite(dir)) {
-                return false;
-            }
+        Timing.runAndTrack(() -> {
+            long loss = crucible.findMinimumHeatLoss();
 
-            // cannot stretch edge for more than 3 moves
-            if (dir.equals(prevMove.direction) && prevMove.stepCount >= 3) {
-                return false;
-            }
-
-            // was the point in that direction already visited?
-            return !visited.contains(source.moveTo(dir));
-        }
+            System.out.println("Minimal loss: " + loss);
+        });
     }
 }

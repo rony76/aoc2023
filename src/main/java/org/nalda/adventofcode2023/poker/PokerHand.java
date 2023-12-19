@@ -62,7 +62,7 @@ public class PokerHand implements Comparable<PokerHand> {
         FOUR_OF_A_KIND {
             @Override
             public boolean check(Map<Integer, Long> cards) {
-                // jokerCount can be up to 3! With 4 (or 5!) jokers, we'd have a poker
+                // jokerCount can be up to 3! With 4 (or 5!) jokers, we'dir have a poker
                 final Long jokerCount = cards.getOrDefault(JOKER, 0L);
                 return cards.entrySet().stream()
                         .filter(entry -> entry.getKey() != JOKER)
@@ -72,7 +72,7 @@ public class PokerHand implements Comparable<PokerHand> {
         FULL_HOUSE {
             @Override
             public boolean check(Map<Integer, Long> cards) {
-                // jokerCount can be up to 2! (with 3 or more we'd have a 4 of a kind or a poker!)
+                // jokerCount can be up to 2! (with 3 or more we'dir have a 4 of a kind or a poker!)
                 final Long jokerCount = cards.getOrDefault(JOKER, 0L);
                 if (jokerCount == 2) {
                     // if it hasn't been identified as a 4 of a kind, it means the other cards all have a count of 1
@@ -92,7 +92,7 @@ public class PokerHand implements Comparable<PokerHand> {
         THREE_OF_A_KIND {
             @Override
             public boolean check(Map<Integer, Long> cards) {
-                // jokerCount can be up to 2! (with 3 or more we'd have a 4 of a kind or a poker!)
+                // jokerCount can be up to 2! (with 3 or more we'dir have a 4 of a kind or a poker!)
                 final Long jokerCount = cards.getOrDefault(JOKER, 0L);
                 return cards.entrySet().stream()
                         .filter(entry -> entry.getKey() != JOKER)

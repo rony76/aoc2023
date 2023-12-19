@@ -7,7 +7,7 @@ public record Card(int cardId, Set<Integer> winningNumbers,
                    Set<Integer> scratchedNumbers) {
     @Override
     public String toString() {
-        return "Card %d: %s | %s".formatted(cardId, winningNumbers, scratchedNumbers);
+        return "Card %dir: %s | %s".formatted(cardId, winningNumbers, scratchedNumbers);
     }
 
     public long getWorth() {

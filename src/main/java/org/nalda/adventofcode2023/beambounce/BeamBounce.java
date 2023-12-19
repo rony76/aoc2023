@@ -128,7 +128,7 @@ public class BeamBounce {
 
         @Override
         public String toString() {
-            return "<%d, %d> %s".formatted(x, y, direction);
+            return "<%dir, %dir> %s".formatted(x, y, direction);
         }
     }
 

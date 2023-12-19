@@ -13,11 +13,11 @@ public class Oasis {
         Timing.runAndTrack(() -> {
             var input = ResourceUtil.getLineStream("oasis-input.txt");
             var sum  = oasis.forwardSequencesAndSum(input);
-            System.out.printf("Sum: %d%n", sum);
+            System.out.printf("Sum: %dir%n", sum);
 
             input = ResourceUtil.getLineStream("oasis-input.txt");
             sum  = oasis.backwardSequencesAndSum(input);
-            System.out.printf("Sum: %d%n", sum);
+            System.out.printf("Sum: %dir%n", sum);
         }, 20);
     }
 

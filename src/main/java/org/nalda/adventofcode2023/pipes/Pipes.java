@@ -165,7 +165,7 @@ public class Pipes {
 
         @Override
         public String toString() {
-            return "<%d, %d>".formatted(line + 1, index + 1);
+            return "<%dir, %dir>".formatted(line + 1, index + 1);
         }
     }
 
