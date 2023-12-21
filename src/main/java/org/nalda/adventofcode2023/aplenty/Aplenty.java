@@ -25,17 +25,17 @@ public class Aplenty {
         }
 
 
-        public PartRatingsRanges[] split(PartRatingsRanges ranges) {
+        public Range[][] split(Range[] ranges) {
             if (guardString.isBlank()) {
-                return new PartRatingsRanges[]{ranges, PartRatingsRanges.empty()};
+                return new Range[][]{ranges, emptyRanges()};
             }
 
             char part = guardString.charAt(0);
             boolean operatorIsLessThan = guardString.charAt(1) == '<';
             int comparisonValue = Integer.parseInt(guardString.substring(2));
 
-            Range[] accepted = ranges.ranges.clone();
-            Range[] ignored = ranges.ranges.clone();
+            Range[] accepted = ranges.clone();
+            Range[] ignored = ranges.clone();
 
             int ratingIndex = getRatingIndex(part);
             Range range = accepted[ratingIndex];
@@ -47,7 +47,11 @@ public class Aplenty {
                 ignored[ratingIndex] = range.withUpperBoundTo(Math.min(range.to, comparisonValue + 1));
             }
 
-            return new PartRatingsRanges[]{new PartRatingsRanges(accepted), new PartRatingsRanges(ignored)};
+            return new Range[][]{accepted, ignored};
+        }
+
+        private Range[] emptyRanges() {
+            return new Range[]{Range.empty()};
         }
 
         public boolean test(PartRatings ratings) {
@@ -76,34 +80,44 @@ public class Aplenty {
             return new Workflow(name, rules);
         }
 
-        public JumpOrCompleted process(PartRatings pr) {
+        public boolean accept(Map<String, Workflow> workflowMap, PartRatings pr) {
             for (Rule rule : rules) {
                 if (rule.test(pr)) {
-                    return rule.action;
+                    if (rule.action.jump != null) {
+                        Workflow workflow = workflowMap.get(rule.action.jump);
+                        return workflow.accept(workflowMap, pr);
+                    }
+                    return rule.action.accepted;
                 }
             }
 
             throw new IllegalStateException("Unexpected end of rules in " + this);
         }
 
-        public long countAcceptable(Map<String, Workflow> workflowMap, PartRatingsRanges partRatingsRanges) {
-            var toBeProcessed = partRatingsRanges;
+        public long countAcceptable(Map<String, Workflow> workflowMap, Range[] ranges) {
+            var toBeProcessed = ranges;
             long result = 0;
             for (Rule rule : rules) {
-                PartRatingsRanges[] splitRanges = rule.split(toBeProcessed);
-                PartRatingsRanges acceptedRanges = splitRanges[0];
+                var splitRanges = rule.split(toBeProcessed);
+                var acceptedRanges = splitRanges[0];
                 if (rule.action.jump != null) {
                     Workflow workflow = workflowMap.get(rule.action.jump);
                     result += workflow.countAcceptable(workflowMap, acceptedRanges);
                 } else {
                     if (rule.action.accepted) {
-                        result += acceptedRanges.count();
+                        result += countRanges(acceptedRanges);
                     }
                 }
                 toBeProcessed = splitRanges[1];
             }
 
             return result;
+        }
+
+        private long countRanges(Range[] r) {
+            return Arrays.stream(r)
+                    .mapToLong(Range::size)
+                    .reduce(1, (a, b) -> a * b);
         }
     }
 
@@ -180,29 +194,6 @@ public class Aplenty {
         }
     }
 
-    private record PartRatingsRanges(Range[] ranges) {
-
-        public long count() {
-            return Arrays.stream(ranges)
-                    .mapToLong(Range::size)
-                    .reduce(1, (a, b) -> a * b);
-        }
-
-        private static PartRatingsRanges empty;
-
-        static PartRatingsRanges empty() {
-            if (empty == null) {
-                empty = new PartRatingsRanges(new Range[]{Range.empty(), Range.empty(), Range.empty(), Range.empty()});
-            }
-            return empty;
-        }
-
-        @Override
-        public String toString() {
-            return "{x=%s, m=%s, a=%s, s=%s}".formatted(ranges[0], ranges[1], ranges[2], ranges[3]);
-        }
-    }
-
     private static Stream<PartRatings> parseRatings(List<String> partRatingsLines) {
         return partRatingsLines.stream()
                 .map(s -> s.substring(1, s.length() - 1))
@@ -247,7 +238,7 @@ public class Aplenty {
 
         Workflow workflow = workflowMap.get("in");
         Range[] fullRanges = initFullRanges();
-        return workflow.countAcceptable(workflowMap, new PartRatingsRanges(fullRanges));
+        return workflow.countAcceptable(workflowMap, fullRanges);
     }
 
     private static Range[] initFullRanges() {
@@ -266,14 +257,7 @@ public class Aplenty {
 
     private boolean accept(Map<String, Workflow> workflowMap, PartRatings pr) {
         Workflow workflow = workflowMap.get("in");
-        while (true) {
-            JumpOrCompleted joc = workflow.process(pr);
-            if (joc.jump != null) {
-                workflow = workflowMap.get(joc.jump);
-            } else {
-                return joc.accepted;
-            }
-        }
+        return workflow.accept(workflowMap, pr);
     }
 
     public static void main(String[] args) {
