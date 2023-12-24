@@ -6,6 +6,7 @@ import org.nalda.adventofcode2023.Timing;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Trench {
     private final int width;
@@ -23,7 +24,7 @@ public class Trench {
         for (char[] row : map) {
             Arrays.fill(row, '.');
         }
-        map[origin.y()][origin.x()] = '#';
+        map[(int) origin.y()][(int) origin.x()] = '#';
 
         Point current = origin;
         final var size = entries.size();
@@ -32,11 +33,11 @@ public class Trench {
             DigPlanEntry entry = entries.get(j);
             Direction direction = entry.direction;
             Direction nextDir = j == size - 1 ? entries.get(0).direction : entries.get(j + 1).direction;
-            map[current.y()][current.x()] = getAngle(prevDir, direction);
+            map[(int) current.y()][(int) current.x()] = getAngle(prevDir, direction);
 
             for (int i = 0; i < entry.length(); i++) {
                 current = direction.move(current);
-                map[current.y()][current.x()] =
+                map[(int) current.y()][(int) current.x()] =
                         i == entry.length - 1 ? getAngle(direction, nextDir) :
                                 direction.isHorizontal() ? '-' : '|';
             }
@@ -132,7 +133,11 @@ public class Trench {
         }
 
         Point move(Point source) {
-            return new Point(source.x() + dx, source.y() + dy);
+            return move(source, 1L);
+        }
+
+        Point move(Point source, long distance) {
+            return new Point(source.x() + dx * distance, source.y() + dy * distance);
         }
 
         public boolean isHorizontal() {
@@ -140,7 +145,7 @@ public class Trench {
         }
     }
 
-    private record Point(int x, int y) {
+    private record Point(long x, long y) {
     }
 
     public record DigPlanEntry(Direction direction, int length, String rgbColor) {
@@ -156,6 +161,23 @@ public class Trench {
             };
             var rgbColor = parts[2].substring(1, 8);
             return new DigPlanEntry(direction, Integer.parseInt(parts[1]), rgbColor);
+        }
+    }
+
+    public record DigPlanLongEntry(Direction direction, long distance) {
+        static DigPlanLongEntry fromString(String s) {
+            var parts = s.split(" ");
+            var encodedInstructions = parts[2].substring(1, 8);
+            var distance = Integer.parseInt(encodedInstructions.substring(1, 6), 16);
+            var direction = switch (encodedInstructions.charAt(6)) {
+                case '0' -> Direction.RIGHT;
+                case '1' -> Direction.DOWN;
+                case '2' -> Direction.LEFT;
+                case '3' -> Direction.UP;
+                default -> throw new IllegalArgumentException("Unexpected direction " + encodedInstructions.charAt(6));
+            };
+
+            return new DigPlanLongEntry(direction, distance);
         }
     }
 
@@ -214,15 +236,41 @@ public class Trench {
 
     public static void main(String[] args) {
         Timing.runAndTrack(() -> {
-            final List<DigPlanEntry> entries = ResourceUtil.getLineStream("trench-input.txt")
+            final List<DigPlanEntry> shortEntries = ResourceUtil.getLineStream("trench-input.txt")
                     .map(DigPlanEntry::fromString)
                     .collect(Collectors.toList());
-            final Trench trench = Trench.fromEntries(entries);
+            final Trench trench = Trench.fromEntries(shortEntries);
 
-            long volume = trench.calculateLakeVolume(entries);
+            long volume = trench.calculateLakeVolume(shortEntries);
+            System.out.println("Volume with short entries: " + volume);
 
-            System.out.println("Volume: " + volume);
+            volume = Trench.calculateLakeVolumeWithLongEntries(ResourceUtil.getLineStream("trench-input.txt"));
+            System.out.println("Volume with long entries: " + volume);
         });
+    }
+
+    public static long calculateLakeVolumeWithLongEntries(Stream<String> lineStream) {
+        List<DigPlanLongEntry> longEntries = lineStream
+                .map(DigPlanLongEntry::fromString)
+                .toList();
+
+        Point prevPoint = new Point(0, 0);
+        long result = 0L;
+        for (DigPlanLongEntry entry : longEntries) {
+            Point newPoint = entry.direction.move(prevPoint, entry.distance);
+
+
+            result += prevPoint.x * newPoint.y - newPoint.x * prevPoint.y;
+            // we need to include the border, too
+            result += entry.distance();
+            prevPoint = newPoint;
+        }
+        // the following is not needed, as origin contributes with zeros
+        // result += prevPoint.x * origin.y - origin.x * prevPoint.y;
+
+        result = Math.abs(result) / 2 + 1;
+
+        return result;
     }
 
 
