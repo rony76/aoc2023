@@ -5,11 +5,13 @@ import org.nalda.adventofcode2023.ResourceUtil;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class Pulse {
 
-    private final Module broadcaster;
+    private Module broadcaster;
+    private Module rx;
 
     private enum Signal {HIGH, LOW}
 
@@ -61,10 +63,10 @@ public class Pulse {
         }
     }
 
-    private static class Conjuction extends Module {
+    private static class Conjunction extends Module {
         private Signal[] upstreamSignals;
 
-        public Conjuction(String name) {
+        public Conjunction(String name) {
             super(name);
         }
 
@@ -85,14 +87,15 @@ public class Pulse {
 
             boolean allHighs = Arrays.stream(upstreamSignals).allMatch(s -> s.equals(Signal.HIGH));
 
+
             return sendSignals(allHighs ? Signal.LOW : Signal.HIGH);
         }
     }
 
     private static class Broadcaster extends Module {
 
-        public Broadcaster(String name) {
-            super(name);
+        public Broadcaster() {
+            super("broadcaster");
         }
 
         @Override
@@ -115,28 +118,29 @@ public class Pulse {
 
 
     public Pulse(List<String> input) {
-        broadcaster = buildModuleNetwork(input);
+        buildModuleNetwork(input);
     }
 
-    private Module buildModuleNetwork(List<String> input) {
+    private void buildModuleNetwork(List<String> input) {
         Map<String, Module> modulesByName = new HashMap<>(input.size());
         Map<Module, String[]> downstreamModuleNamesByModule = new HashMap<>(input.size());
 
         for (String line : input) {
             String[] attributesAndConnections = line.split(" -> ");
+            String attributes = attributesAndConnections[0];
             Module module;
             String name;
-            String attributes = attributesAndConnections[0];
+
             if (attributes.equals("broadcaster")) {
                 name = attributes;
-                module = new Broadcaster("broadcaster");
+                module = broadcaster = new Broadcaster();
             } else {
                 name = attributes.substring(1);
                 char type = attributes.charAt(0);
                 module = switch (type) {
                     case '%' -> new FlipFlop(name);
-                    case '&' -> new Conjuction(name);
-                    default -> throw new IllegalArgumentException("Unexpected modujle type " + type);
+                    case '&' -> new Conjunction(name);
+                    default -> throw new IllegalArgumentException("Unexpected module type " + type);
                 };
             }
 
@@ -150,7 +154,11 @@ public class Pulse {
             for (String connection : connections) {
                 Module target = modulesByName.get(connection);
                 if (target == null) {
-                    target = new Sink(connection);
+                    if (connection.equals("rx")) {
+                        target = rx = new Sink("rx");
+                    } else {
+                        target = new Sink(connection);
+                    }
                     modulesByName.put(connection, target);
                 }
                 source.connectTo(target);
@@ -159,7 +167,6 @@ public class Pulse {
 
         downstreamModuleNamesByModule.keySet().forEach(Module::afterConnectionsBuilt);
 
-        return modulesByName.get("broadcaster");
     }
 
     public long calcPulsesProduct() {
@@ -167,8 +174,13 @@ public class Pulse {
         AtomicLong highCounter = new AtomicLong(0);
 
         for (int i = 0; i < 1000; i++) {
-            pressButton(lowCounter, highCounter);
-            // System.out.println();
+            pressButton(ts -> {
+                if (ts.signal == Signal.HIGH) {
+                    highCounter.incrementAndGet();
+                } else {
+                    lowCounter.incrementAndGet();
+                }
+            });
         }
 
         long high = highCounter.get();
@@ -179,27 +191,57 @@ public class Pulse {
         return high * low;
     }
 
-    private void pressButton(AtomicLong lowCounter, AtomicLong highCounter) {
-        Queue<TargetedSignal> signals = new ArrayDeque<>();
+    public void outputCycles() {
+        Map<String, Integer> emissions = new HashMap<>();
 
+        AtomicLong i = new AtomicLong(1);
+        while (i.get() < 10_000) {
+            pressButton(ts -> {
+                if (ts.from != null
+                        && ts.from.getClass().equals(Conjunction.class)
+                        && ts.signal == Signal.LOW) {
+                    Integer prevEmissions = emissions.getOrDefault(ts.from.name, 0);
+                    if (prevEmissions < 3) {
+                        System.out.printf("Conjunction %s emitted low after %d%n", ts.from.name, i.get());
+                        emissions.put(ts.from.name, prevEmissions + 1);
+                    }
+                }
+            });
+
+            i.incrementAndGet();
+        }
+    }
+
+    private void pressButton(Consumer<TargetedSignal> signalObserver) {
+        Queue<TargetedSignal> signals = new ArrayDeque<>();
         TargetedSignal initialSignal = new TargetedSignal(null, broadcaster, Signal.LOW);
-        // System.out.println(initialSignal);
         signals.offer(initialSignal);
-        lowCounter.incrementAndGet();
 
         while (!signals.isEmpty()) {
             TargetedSignal targetedSignal = signals.poll();
+            signalObserver.accept(targetedSignal);
             Stream<TargetedSignal> downStreamSignals = targetedSignal.to.processSignal(targetedSignal.signal, targetedSignal.from);
-            downStreamSignals
-                    .peek(s -> {
-                        if (s.signal == Signal.HIGH) {
-                            highCounter.incrementAndGet();
-                        } else {
-                            lowCounter.incrementAndGet();
-                        }
-                    })
-                    // .peek(System.out::println)
-                    .forEach(signals::offer);
+            downStreamSignals.forEach(signals::offer);
+        }
+    }
+
+    public void printRxBackwards() {
+        Set<Module> alreadyPrinted = new HashSet<>();
+        printBackwards(rx, "", alreadyPrinted);
+    }
+
+    private void printBackwards(Module module, String indent, Set<Module> alreadyPrinted) {
+        System.out.printf("%s%c%s%s%n",
+                indent,
+                module.getClass().getSimpleName().charAt(0),
+                module.name,
+                alreadyPrinted.contains(module) ? "*" : "");
+
+        if (!alreadyPrinted.contains(module)) {
+            alreadyPrinted.add(module);
+            for (Module upstreamModule : module.upstreamModules) {
+                printBackwards(upstreamModule, indent + " +- ", alreadyPrinted);
+            }
         }
     }
 
@@ -211,6 +253,11 @@ public class Pulse {
         long product = pulse.calcPulsesProduct();
 
         System.out.println("Product of pulses is: " + product);
+
+        pulse = new Pulse(input);
+        pulse.printRxBackwards();
+
+        pulse.outputCycles();
 
     }
 }
