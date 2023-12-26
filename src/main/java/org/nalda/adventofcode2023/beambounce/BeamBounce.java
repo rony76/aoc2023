@@ -1,5 +1,6 @@
 package org.nalda.adventofcode2023.beambounce;
 
+import org.nalda.adventofcode2023.grids.GridReader;
 import org.nalda.adventofcode2023.ResourceUtil;
 import org.nalda.adventofcode2023.pipes.Direction;
 
@@ -14,12 +15,10 @@ public class BeamBounce {
     private final char[][] grid;
 
     public BeamBounce(List<String> input) {
-        height = input.size();
-        width = input.get(0).length();
-        grid = new char[height][width];
-        for (int i = 0; i < input.size(); i++) {
-            grid[i] = input.get(i).toCharArray();
-        }
+        var g = new GridReader().read(input);
+        height = g.height();
+        width = g.width();
+        grid = g.grid();
     }
 
     public long countEnergised() {

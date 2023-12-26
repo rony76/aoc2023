@@ -2,6 +2,8 @@ package org.nalda.adventofcode2023.trench;
 
 import org.nalda.adventofcode2023.ResourceUtil;
 import org.nalda.adventofcode2023.Timing;
+import org.nalda.adventofcode2023.grids.Direction;
+import org.nalda.adventofcode2023.grids.Point;
 
 import java.util.Arrays;
 import java.util.List;
@@ -121,33 +123,6 @@ public class Trench {
         System.out.println();
     }
 
-    private enum Direction {
-        UP(0, -1), RIGHT(1, 0), DOWN(0, 1), LEFT(-1, 0);
-
-        private final int dx;
-        private final int dy;
-
-        Direction(int dx, int dy) {
-            this.dx = dx;
-            this.dy = dy;
-        }
-
-        Point move(Point source) {
-            return move(source, 1L);
-        }
-
-        Point move(Point source, long distance) {
-            return new Point(source.x() + dx * distance, source.y() + dy * distance);
-        }
-
-        public boolean isHorizontal() {
-            return this == LEFT || this == RIGHT;
-        }
-    }
-
-    private record Point(long x, long y) {
-    }
-
     public record DigPlanEntry(Direction direction, int length, String rgbColor) {
         static DigPlanEntry fromString(String s) {
             var parts = s.split(" ");
@@ -260,7 +235,7 @@ public class Trench {
             Point newPoint = entry.direction.move(prevPoint, entry.distance);
 
 
-            result += prevPoint.x * newPoint.y - newPoint.x * prevPoint.y;
+            result += prevPoint.x() * newPoint.y() - newPoint.x() * prevPoint.y();
             // we need to include the border, too
             result += entry.distance();
             prevPoint = newPoint;
