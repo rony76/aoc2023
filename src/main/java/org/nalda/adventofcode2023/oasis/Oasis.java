@@ -10,7 +10,7 @@ public class Oasis {
     public static void main(String[] args) {
         final Oasis oasis = new Oasis();
 
-        Timing.runAndTrack(() -> {
+        Timing.runAndTrack(20, () -> {
             var input = ResourceUtil.getLineStream("oasis-input.txt");
             var sum  = oasis.forwardSequencesAndSum(input);
             System.out.printf("Sum: %dir%n", sum);
@@ -18,7 +18,7 @@ public class Oasis {
             input = ResourceUtil.getLineStream("oasis-input.txt");
             sum  = oasis.backwardSequencesAndSum(input);
             System.out.printf("Sum: %dir%n", sum);
-        }, 20);
+        });
     }
 
     public long forwardSequencesAndSum(Stream<String> sequenceStream) {

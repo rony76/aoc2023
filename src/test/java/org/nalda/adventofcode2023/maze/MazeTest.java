@@ -9,10 +9,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class MazeTest {
     @Test
-    void acceptance() {
+    void acceptanceWithSlipperySlopes() {
         List<String> input = ResourceUtil.getLineList("maze-acceptance.txt");
-        Maze maze = new Maze(input);
+        Maze maze = new Maze(input, true);
 
         assertThat(maze.findLongestWalk()).isEqualTo(94);
+    }
+
+    @Test
+    void acceptanceWithoutSlipperySlopes() {
+        List<String> input = ResourceUtil.getLineList("maze-acceptance.txt");
+        Maze maze = new Maze(input, false);
+
+        assertThat(maze.findLongestWalk()).isEqualTo(154);
     }
 }
